@@ -233,6 +233,13 @@ function reveals() {
       });
     });
   }
+
+  // The title owns the screen until the first picture arrives, then steps back
+  // into the dark so text and picture never sit on top of each other.
+  gsap.fromTo('.immersion__title', { opacity: 1, scale: 1, yPercent: 0 }, {
+    opacity: 0, scale: reduced ? 1 : 0.94, yPercent: reduced ? 0 : -8, ease: 'none',
+    scrollTrigger: { trigger: '.immersion__reel', start: 'top 92%', end: 'top 52%', scrub: true },
+  });
 }
 
 /* ------------------------------------------------------ scroll-linked moves */
@@ -245,10 +252,8 @@ function scrollMoves() {
   });
   gsap.to('.hero__foot', { y: -80, opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '60% top', scrub: true } });
 
-  $$('.universe__title [data-depth]').forEach((w) => {
-    const d = parseFloat(w.dataset.depth);
-    gsap.fromTo(w, { y: 22 * d }, { y: -22 * d, ease: 'none', scrollTrigger: { trigger: '.universe__title', start: 'top bottom', end: 'bottom top', scrub: true } });
-  });
+  // the title drifts as one piece, a little slower than the page
+  gsap.fromTo('.universe__title', { y: 40 }, { y: -40, ease: 'none', scrollTrigger: { trigger: '.universe__title', start: 'top bottom', end: 'bottom top', scrub: true } });
 
   const pan = $('[data-pan]');
   gsap.fromTo('.panorama__frame', { clipPath: 'inset(10% 6% 10% 6%)' }, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'none', scrollTrigger: { trigger: '.panorama', start: 'top 95%', end: 'top 30%', scrub: true } });
