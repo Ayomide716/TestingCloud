@@ -210,7 +210,9 @@ class Body {
       this.spinRate = damp(this.spinRate ?? t.spin, t.spin, lambda, dt);
       this.tilt.rotation.z = damp(this.tilt.rotation.z, t.tilt ?? 0.42, lambda, dt);
     }
-    this.spin += dt * (this.spinRate ?? 0.05);
+    // the visitor's flick keeps turning the planet, then friction takes over
+    this.spinVel = (this.spinVel ?? 0) * Math.exp(-1.8 * dt);
+    this.spin += dt * ((this.spinRate ?? 0.05) + this.spinVel);
     u.uSpin.value = this.spin;
     u.uTime.value = time;
 
@@ -347,6 +349,10 @@ export class Space {
 
   setPose(p) { Object.assign(this.target, p); }
 
+  // Drag-to-turn: radians applied now, plus a release velocity (rad/s).
+  spinBy(rad) { this.body.spin += rad; }
+  fling(radPerSec) { this.body.spinVel = Math.max(-6, Math.min(6, radPerSec)); }
+
   jump() { Object.assign(this.pose, this.target); }
 
   resize() {
@@ -378,9 +384,12 @@ export class Space {
     if (!this.running) return;
     const dt = Math.min((now - this.last) / 1000, 1 / 20);
     this.last = now;
-    this.update(dt);
-    this.renderer.render(this.scene, this.camera);
-    this.adapt(dt);
+    // Nothing to draw while opaque sections cover the whole canvas.
+    if (!this.covered) {
+      this.update(dt);
+      this.renderer.render(this.scene, this.camera);
+      this.adapt(dt);
+    }
     requestAnimationFrame(this.tick);
   }
 

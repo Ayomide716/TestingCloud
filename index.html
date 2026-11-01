@@ -28,11 +28,26 @@
       <a href="#discover" class="nav__link"><span>Discover</span></a>
       <a href="#experience" class="nav__link"><span>Experience</span></a>
     </nav>
-    <a class="btn btn--line magnetic nav__cta" href="#enter">
-      <span class="btn__label">Enter Astrion</span>
-      <svg class="btn__arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4 12.5 8l-4 4" /></svg>
-    </a>
+    <div class="nav__end">
+      <a class="btn btn--line magnetic nav__cta" href="#enter">
+        <span class="btn__label">Enter Astrion</span>
+        <svg class="btn__arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4 12.5 8l-4 4" /></svg>
+      </a>
+      <button class="nav__menu" type="button" aria-expanded="false" aria-controls="menu" data-menu-toggle>Menu</button>
+    </div>
   </header>
+
+  <div class="menu" id="menu" data-menu hidden>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="#explore">Explore</a></li>
+        <li><a href="#atlas">Choose a world</a></li>
+        <li><a href="#experience">Experience</a></li>
+        <li><a href="#discover">Discover</a></li>
+      </ul>
+    </nav>
+    <p>Step beyond Earth and experience the universe like never before.</p>
+  </div>
 
   <div class="intro-mark" aria-hidden="true"><span data-intro-word>ASTRION</span></div>
 
@@ -84,18 +99,24 @@
       <div class="worlds__pin">
         <div class="worlds__copy">
           <h2 class="worlds__title" id="worlds-title">Explore worlds</h2>
-          <ol class="worlds__steps">
+          <!-- screen readers get the three steps in order; the stage below swaps them visually -->
+          <ol class="sr-only">
+            <li><h3>Travel anywhere</h3><p>Move freely through the solar system and beyond. Set a course for any world and the sky rearranges itself around you as you go.</p></li>
+            <li><h3>Discover every world</h3><p>Explore planets, moons, stars and celestial phenomena, each lit by its own sun and turning on its own clock.</p></li>
+            <li><h3>Experience the scale</h3><p>From orbit to the surface, every world is drawn to true size. Beside Jupiter, Earth is the small blue point: eleven of it would span the giant.</p></li>
+          </ol>
+          <ol class="worlds__steps" aria-hidden="true">
             <li class="step is-active" data-step="0">
-              <h3 class="step__title"><span class="line"><span class="line__in">Travel anywhere</span></span></h3>
+              <p class="step__title"><span class="line"><span class="line__in">Travel anywhere</span></span></p>
               <p class="step__text">Move freely through the solar system and beyond. Set a course for any world and the sky rearranges itself around you as you go.</p>
             </li>
             <li class="step" data-step="1">
-              <h3 class="step__title"><span class="line"><span class="line__in">Discover every world</span></span></h3>
+              <p class="step__title"><span class="line"><span class="line__in">Discover every world</span></span></p>
               <p class="step__text">Explore planets, moons, stars and celestial phenomena, each lit by its own sun and turning on its own clock.</p>
-              <p class="step__world" aria-live="polite"><span data-step-world>Earth</span></p>
+              <p class="step__world"><span data-step-world>Earth</span></p>
             </li>
             <li class="step" data-step="2">
-              <h3 class="step__title"><span class="line"><span class="line__in">Experience the scale</span></span></h3>
+              <p class="step__title"><span class="line"><span class="line__in">Experience the scale</span></span></p>
               <p class="step__text">From orbit to the surface, every world is drawn to true size. Beside Jupiter, Earth is the small blue point: eleven of it would span the giant.</p>
             </li>
           </ol>
@@ -109,7 +130,7 @@
 
     <!-- ATLAS: the live selector --------------------------------------- -->
     <section class="atlas" id="atlas" aria-labelledby="atlas-title">
-      <div class="atlas__space" aria-hidden="true"></div>
+      <div class="atlas__space" aria-hidden="true" data-spin><p class="atlas__hint">Drag sideways to turn the planet</p></div>
       <div class="atlas__panel">
         <h2 class="atlas__title" id="atlas-title" data-split>Choose a world.</h2>
         <div class="atlas__tabs" role="tablist" aria-label="Worlds">

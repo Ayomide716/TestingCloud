@@ -44,6 +44,7 @@ if (!reduced) {
     const target = id === '#top' ? 0 : $(id);
     if (target === null) return;
     e.preventDefault();
+    lenis.start(); // a menu link may fire while the open menu has scrolling paused
     lenis.scrollTo(target, { duration: id === '#approach' ? 2.4 : 1.8, easing: (x) => 1 - Math.pow(1 - x, 4) });
   }));
 }
@@ -68,6 +69,7 @@ const phases = $$('.approach__phase');
 const steps = $$('.step');
 const meter = $('[data-meter]');
 const stepWorld = $('[data-step-world]');
+const enterSection = $('.enter');
 let activeStep = 0;
 let activePhase = 0;
 
@@ -109,6 +111,9 @@ gsap.ticker.add((time, deltaMs) => {
   nav.classList.toggle('is-hidden', immersed && !state.intro);
   document.body.classList.toggle('is-immersed', immersed);
   nav.classList.toggle('is-solid', y > 40);
+
+  // the ENTER band and the footer are opaque: once they fill the screen, stop drawing
+  if (space) space.covered = enterSection.getBoundingClientRect().top <= 0;
 });
 
 function setStep(i) {
@@ -294,6 +299,70 @@ function enterBand() {
 }
 
 /* ---------------------------------------------------- the atlas (live thing) */
+/* ---------------------------------------- drag the planet to turn it */
+function spinDrag() {
+  const area = $('[data-spin]');
+  if (!space || !area) return;
+  let id = null, lastX = 0, lastT = 0, vel = 0;
+  area.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    id = e.pointerId; lastX = e.clientX; lastT = performance.now(); vel = 0;
+    area.setPointerCapture(id);
+    area.classList.add('is-dragging');
+  });
+  area.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    const now = performance.now();
+    const rad = ((e.clientX - lastX) / area.clientWidth) * Math.PI * 1.4;
+    space.spinBy(rad);
+    space.fling(0);
+    vel = vel * 0.6 + (rad / Math.max((now - lastT) / 1000, 1 / 240)) * 0.4;
+    lastX = e.clientX; lastT = now;
+    if (Math.abs(rad) > 0.02) area.classList.add('has-dragged');
+  });
+  const end = (e) => {
+    if (e.pointerId !== id) return;
+    id = null;
+    area.classList.remove('is-dragging');
+    // a still release should not fling
+    if (performance.now() - lastT < 80) space.fling(reduced ? 0 : vel);
+  };
+  area.addEventListener('pointerup', end);
+  area.addEventListener('pointercancel', end);
+  area.addEventListener('lostpointercapture', (e) => { if (e.pointerId === id) end(e); });
+}
+
+/* -------------------------------------------------------- phone menu */
+function phoneMenu() {
+  const toggle = $('[data-menu-toggle]');
+  const menu = $('[data-menu]');
+  const links = $$('a', menu);
+  let open = false;
+  const set = (v, { focus = true } = {}) => {
+    open = v;
+    clearTimeout(menu._t);
+    if (v) {
+      menu.hidden = false;
+      void menu.offsetWidth; // let the closed state paint first so the fade runs
+      menu.classList.add('is-open');
+    } else {
+      menu.classList.remove('is-open');
+      menu._t = setTimeout(() => { menu.hidden = true; }, reduced ? 0 : 500);
+    }
+    toggle.setAttribute('aria-expanded', String(v));
+    toggle.textContent = v ? 'Close' : 'Menu';
+    $('main').inert = v;
+    $('.footer').inert = v;
+    if (v) { lenis?.stop(); if (focus) links[0].focus(); }
+    else { lenis?.start(); if (focus) toggle.focus(); }
+  };
+  set(false, { focus: false });
+  toggle.addEventListener('click', () => set(!open));
+  links.forEach((a) => a.addEventListener('click', () => set(false, { focus: false })));
+  addEventListener('keydown', (e) => { if (open && e.key === 'Escape') set(false); });
+  matchMedia('(min-width: 721px)').addEventListener('change', (m) => { if (m.matches && open) set(false, { focus: false }); });
+}
+
 function atlas() {
   const tabs = $$('.atlas__tab');
   const panel = $('#atlas-facts');
@@ -415,6 +484,8 @@ atlas();
 discover();
 enterBand();
 navCurrent();
+spinDrag();
+phoneMenu();
 if (!coarse && !reduced) magnetic($$('.magnetic'));
 runIntro();
 if (import.meta.env.DEV) window.__astrion = { lenis, space, state };
