@@ -233,6 +233,13 @@ function reveals() {
       });
     });
   }
+
+  // The title owns the screen until the first picture arrives, then steps back
+  // into the dark so text and picture never sit on top of each other.
+  gsap.fromTo('.immersion__title', { opacity: 1, scale: 1, yPercent: 0 }, {
+    opacity: 0, scale: reduced ? 1 : 0.94, yPercent: reduced ? 0 : -8, ease: 'none',
+    scrollTrigger: { trigger: '.immersion__reel', start: 'top 92%', end: 'top 52%', scrub: true },
+  });
 }
 
 /* ------------------------------------------------------ scroll-linked moves */
