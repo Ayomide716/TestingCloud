@@ -242,7 +242,7 @@ export class Space {
     this.reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.renderer = new THREE.WebGLRenderer({
-      canvas, antialias: tier !== 'low', alpha: false, powerPreference: 'high-performance',
+      canvas, antialias: true, alpha: false, powerPreference: 'high-performance',
       preserveDrawingBuffer: still,
     });
     this.renderer.setClearColor('#020306', 1);

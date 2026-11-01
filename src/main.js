@@ -245,10 +245,8 @@ function scrollMoves() {
   });
   gsap.to('.hero__foot', { y: -80, opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '60% top', scrub: true } });
 
-  $$('.universe__title [data-depth]').forEach((w) => {
-    const d = parseFloat(w.dataset.depth);
-    gsap.fromTo(w, { y: 22 * d }, { y: -22 * d, ease: 'none', scrollTrigger: { trigger: '.universe__title', start: 'top bottom', end: 'bottom top', scrub: true } });
-  });
+  // the title drifts as one piece, a little slower than the page
+  gsap.fromTo('.universe__title', { y: 40 }, { y: -40, ease: 'none', scrollTrigger: { trigger: '.universe__title', start: 'top bottom', end: 'bottom top', scrub: true } });
 
   const pan = $('[data-pan]');
   gsap.fromTo('.panorama__frame', { clipPath: 'inset(10% 6% 10% 6%)' }, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'none', scrollTrigger: { trigger: '.panorama', start: 'top 95%', end: 'top 30%', scrub: true } });

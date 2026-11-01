@@ -259,8 +259,10 @@ void main(){
   vec3 oc = uCenter - cameraPosition;
   float along = dot(oc, D);
   vec3 closest = cameraPosition + D * along;
-  float h = length(closest - uCenter) / uRadius;
-  if (h < 1.0 && along > 0.0) discard;
+  // The mesh is a polygon inside the true sphere, so rays with h < 1 can still miss it
+  // at the silhouette. Treat them as grazing the limb instead of discarding them, or
+  // the background shows through as a dotted outline.
+  float h = max(length(closest - uCenter) / uRadius, 1.0);
   float glow = exp(-(h - 1.0) * 46.0) * (1.0 - smoothstep(1.06, 1.085, h));
   vec3 n = normalize(closest - uCenter);
   vec3 L = normalize(uLight);
@@ -304,10 +306,16 @@ void main(){
   float r = length(vLocal.xy);
   float t = (r - uInner) / (uOuter - uInner);
   if (t < 0.0 || t > 1.0) discard;
-  float bands = 0.55 + 0.45 * snoise(vec3(t * 38.0, 0.3, 0.0)) * 0.6 + 0.25 * snoise(vec3(t * 140.0, 1.7, 0.0));
+  // Band detail fades out once it is finer than a pixel (seen edge-on, or on a
+  // small screen), otherwise it sparkles and the ring edge turns jagged.
+  float w = fwidth(t);
+  float fine = 1.0 - smoothstep(0.0015, 0.006, w);
+  float mid = 1.0 - smoothstep(0.006, 0.025, w);
+  float bands = 0.55 + 0.27 * snoise(vec3(t * 38.0, 0.3, 0.0)) * mid + 0.25 * snoise(vec3(t * 140.0, 1.7, 0.0)) * fine;
   float density = bands;
-  density *= smoothstep(0.0, 0.06, t) * (1.0 - smoothstep(0.9, 1.0, t));
-  density *= 1.0 - (smoothstep(0.58, 0.6, t) - smoothstep(0.645, 0.665, t)) * 0.92; // the division
+  density *= smoothstep(0.0, 0.06 + w, t) * (1.0 - smoothstep(0.9 - w, 1.0, t));
+  float e = max(w, 0.02);
+  density *= 1.0 - (smoothstep(0.59 - e, 0.6, t) - smoothstep(0.645, 0.655 + e, t)) * 0.92 * mid; // the division
   density *= 1.0 - smoothstep(0.86, 0.9, t) * 0.35;
   vec3 L = normalize(uLight);
   vec3 oc = vPosW - uCenter;
