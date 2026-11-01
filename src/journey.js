@@ -58,10 +58,19 @@ export function buildJourney({ reduced = false } = {}) {
     // Earth beside Jupiter at true relative size (12,742 km against 139,820 km)
     [wStart + wLen * 0.84, P({ compare: 0.0911 })],
     [wStart + wLen, P({ compare: 0.0911 })],
-    [top(atlas) - vh * 0.35, P({ planetX: -0.42, planetY: 0, planetScale: 1.12, compare: 0, lightA: 0.95, lightE: 0.28, orbit: 2.9, camZ: 6.5 },
-      { planetX: 0, planetY: 0.52, planetScale: 0.62 })],
-    [top(atlas) + atlas.offsetHeight - vh * 0.85, P({ planetX: -0.42, planetY: 0, planetScale: 1.12 },
-      { planetX: 0, planetY: 0.6, planetScale: 0.55 })],
+    ...(portrait
+      // On a phone the planet sits in the space above the panel and scrolls away
+      // with the page (linear keys, 2 half-heights per screen scrolled), instead
+      // of staying pinned while the text slides over it.
+      ? [
+        [top(atlas) - vh * 0.35, { planetX: 0, planetY: -0.22, planetScale: 0.62, compare: 0, lightA: 0.95, lightE: 0.28, orbit: 2.9, camZ: 6.5 }],
+        [top(atlas), { planetY: 0.48 }, 'linear'],
+        [top(atlas) + vh * 0.9, { planetY: 2.28 }, 'linear'],
+      ]
+      : [
+        [top(atlas) - vh * 0.35, { planetX: -0.42, planetY: 0, planetScale: 1.12, compare: 0, lightA: 0.95, lightE: 0.28, orbit: 2.9, camZ: 6.5 }],
+        [top(atlas) + atlas.offsetHeight - vh * 0.85, { planetX: -0.42, planetY: 0, planetScale: 1.12 }],
+      ]),
     [aStart, P({ planetX: 0, planetY: 0, planetScale: 1, camZ: 9, lightA: 0.75, lightE: 0.25, bright: 1, warp: 0, orbit: 3.1 })],
     ...dive.map(([y, p]) => [y, p]),
     // inside the cloud deck the camera is quietly moved back out, unseen
@@ -74,9 +83,9 @@ export function buildJourney({ reduced = false } = {}) {
   // carry every property forward so each keyframe is a complete pose
   const keys = [];
   let acc = { ...DEFAULT_POSE };
-  for (const [y, p] of raw) {
+  for (const [y, p, ease] of raw) {
     acc = { ...acc, ...p };
-    keys.push({ y, pose: acc });
+    keys.push({ y, pose: acc, linear: ease === 'linear' });
   }
 
   return {
@@ -95,7 +104,8 @@ export function sampleJourney(j, y) {
   for (let i = 1; i < k.length; i++) {
     if (y <= k[i].y) {
       const a = k[i - 1], b = k[i];
-      const t = smoother((y - a.y) / Math.max(1, b.y - a.y));
+      const f = (y - a.y) / Math.max(1, b.y - a.y);
+      const t = b.linear ? f : smoother(f);
       for (const key in b.pose) out[key] = a.pose[key] + (b.pose[key] - a.pose[key]) * t;
       return out;
     }

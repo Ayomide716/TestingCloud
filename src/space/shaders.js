@@ -168,33 +168,47 @@ void main(){
   vec3 p = normalize(vObj);
   vec3 sp = p + uSeed;
 
-  // gas giant: latitude bands sheared by turbulence
-  float flow = fbm(sp * vec3(2.2, 7.0, 2.2) + vec3(uTime * 0.004, 0.0, 0.0), uOct);
-  float lat = p.y + flow * 0.035 * (0.6 + uStorm);
-  float band = sin(lat * uBand + snoise(vec3(lat * 6.0, uSeed, 0.0)) * 1.3);
-  vec3 gas = mix(uColA, uColB, smoothstep(-0.85, 0.85, band));
-  float fine = snoise(vec3(lat * 42.0, uSeed * 2.0, 0.0)) * 0.5 + snoise(vec3(lat * 110.0, uSeed, 1.0)) * 0.25;
-  gas = mix(gas, uColC, smoothstep(0.05, 0.7, fine) * 0.4);
-  float eddy = fbm(sp * vec3(5.0, 16.0, 5.0) + vec3(uTime * 0.006, 0.0, 0.0), 4);
-  gas *= 0.94 + 0.1 * eddy * (0.4 + uStorm);
-  vec3 spot = normalize(vec3(0.8, -0.36, 0.6));
-  float sd = length((p - spot) * vec3(1.0, 2.1, 1.0)) + flow * 0.025;
-  gas = mix(gas, uColC * 1.15, smoothstep(0.16, 0.07, sd) * uStorm);
-
-  // rocky world: height field, optional ocean, polar caps
-  float h = fbm(sp * 1.9, uOct) + fbm(sp * 8.0, 4) * 0.28;
-  vec3 land = mix(uColA, uColB, smoothstep(-0.35, 0.45, h));
-  land = mix(land, uColC, smoothstep(0.25, 0.75, fbm(sp * 4.5 + 4.0, 4)) * 0.6);
-  float isLand = smoothstep(uOcean - 0.015, uOcean + 0.015, h);
-  vec3 rock = mix(uColD * (0.8 + 0.4 * smoothstep(uOcean - 0.4, uOcean, h)), land, isLand);
-  float cap = smoothstep(0.8, 0.88, abs(p.y) + fbm(sp * 5.0, 3) * 0.07) * uCaps;
-  rock = mix(rock, vec3(0.86, 0.88, 0.9), cap);
-
-  vec3 albedo = mix(rock, gas, uGas);
+  // Only one surface model runs per pixel: worlds switch during an eclipse, so
+  // uGas is always exactly 0 or 1 and this branch is uniform (cheap on GPUs).
+  // That halves the work when a planet fills a phone screen during the dive.
+  vec3 albedo;
+  float isLand = 1.0;
+  if (uGas > 0.5) {
+    // gas giant: latitude bands sheared by turbulence
+    float flow = fbm(sp * vec3(2.2, 7.0, 2.2) + vec3(uTime * 0.004, 0.0, 0.0), uOct);
+    float lat = p.y + flow * 0.035 * (0.6 + uStorm);
+    float band = sin(lat * uBand + snoise(vec3(lat * 6.0, uSeed, 0.0)) * 1.3);
+    vec3 gas = mix(uColA, uColB, smoothstep(-0.85, 0.85, band));
+    float fine = snoise(vec3(lat * 42.0, uSeed * 2.0, 0.0)) * 0.5 + snoise(vec3(lat * 110.0, uSeed, 1.0)) * 0.25;
+    gas = mix(gas, uColC, smoothstep(0.05, 0.7, fine) * 0.4);
+    float eddy = fbm(sp * vec3(5.0, 16.0, 5.0) + vec3(uTime * 0.006, 0.0, 0.0), 4);
+    gas *= 0.94 + 0.1 * eddy * (0.4 + uStorm);
+    if (uStorm > 0.0) {
+      vec3 spot = normalize(vec3(0.8, -0.36, 0.6));
+      float sd = length((p - spot) * vec3(1.0, 2.1, 1.0)) + flow * 0.025;
+      gas = mix(gas, uColC * 1.15, smoothstep(0.16, 0.07, sd) * uStorm);
+    }
+    albedo = gas;
+  } else {
+    // rocky world: height field, optional ocean, polar caps
+    float h = fbm(sp * 1.9, uOct) + fbm(sp * 8.0, 4) * 0.28;
+    vec3 land = mix(uColA, uColB, smoothstep(-0.35, 0.45, h));
+    land = mix(land, uColC, smoothstep(0.25, 0.75, fbm(sp * 4.5 + 4.0, 4)) * 0.6);
+    isLand = smoothstep(uOcean - 0.015, uOcean + 0.015, h);
+    vec3 rock = mix(uColD * (0.8 + 0.4 * smoothstep(uOcean - 0.4, uOcean, h)), land, isLand);
+    if (uCaps > 0.0) {
+      float cap = smoothstep(0.8, 0.88, abs(p.y) + fbm(sp * 5.0, 3) * 0.07) * uCaps;
+      rock = mix(rock, vec3(0.86, 0.88, 0.9), cap);
+    }
+    albedo = rock;
+  }
   // rocky worlds get weather systems; gas giants get high, wind-stretched streaks
-  vec3 cq = mix(vec3(2.4, 5.0, 2.4), vec3(1.4, 22.0, 1.4), uGas);
-  float cl = smoothstep(mix(0.05, 0.35, uGas), 0.6, fbm(sp * cq + vec3(uTime * 0.006, 0.0, 0.0), uOct)) * uCloud;
-  albedo = mix(albedo, mix(vec3(0.93), uColC, uGas * 0.5), cl * 0.9);
+  float cl = 0.0;
+  if (uCloud > 0.001) {
+    vec3 cq = mix(vec3(2.4, 5.0, 2.4), vec3(1.4, 22.0, 1.4), uGas);
+    cl = smoothstep(mix(0.05, 0.35, uGas), 0.6, fbm(sp * cq + vec3(uTime * 0.006, 0.0, 0.0), uOct)) * uCloud;
+    albedo = mix(albedo, mix(vec3(0.93), uColC, uGas * 0.5), cl * 0.9);
+  }
 
   vec3 N = normalize(vNormalW);
   vec3 L = normalize(uLight);
